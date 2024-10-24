@@ -2,7 +2,7 @@ import openai
 import os
 
 # Read the API key from a text file
-with open('local_env.txt', 'r') as file:
+with open('api_key.txt', 'r') as file:
     api_key = file.readline().strip().split('=')[1].strip()
 
 openai.api_key = api_key
