@@ -17,7 +17,7 @@ def genTest(project_name):
     test_files = glob.glob(testing_files_path)
 
     # File to save the training data
-    training_data_file = 'codeBertTraining.jsonl'
+    training_data_file = 'codeBertTraining_v2.jsonl'
 
     # Iterate over each test file and extract test functions
     with open(training_data_file, 'a') as train_file:
@@ -62,15 +62,24 @@ def genTest(project_name):
                         # Save the prompt and corrected response in JSONL format for fine-tuning
                         train_data = {
                             "code": function_code,
-                            "label": od_type,
-                            "fix": patch_diff
+                            "od": 1, # true for OD flaky
+                            # "fix": patch_diff
                         }
 
                         train_file.write(json.dumps(train_data) + "\n")
 
                     else:
                         # Skip if the test function is not found in the Patches file
-                        print(f"Test '{test_name}' not found in Patches file.\n")
+                        print(f"Test '{test_name}' not found in Patches file, not flaky.\n")
+
+                        # Save the prompt and corrected response in JSONL format for fine-tuning
+                        train_data = {
+                            "code": function_code,
+                            "od": 0, # false for OD flaky
+                            # "fix": patch_diff
+                        }
+
+                        train_file.write(json.dumps(train_data) + "\n")
 
 
 genTest('py-autodoc')
