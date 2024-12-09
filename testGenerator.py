@@ -9,7 +9,7 @@ import pandas as pd
 patches_file = 'testingFiles/Patches.xlsx'
 df_patches = pd.read_excel(patches_file)
 
-def genTest(project_name):
+def genTest(project_name, file_name):
     # Define the path to the testing files
     testing_files_path = 'testingFiles/%s/*.py' % project_name
 
@@ -17,7 +17,8 @@ def genTest(project_name):
     test_files = glob.glob(testing_files_path)
 
     # File to save the training data
-    training_data_file = 'codeBertTraining_v2.jsonl'
+    # training_data_file = 'codeBertTraining_v2.jsonl'
+    training_data_file = file_name
 
     # Iterate over each test file and extract test functions
     with open(training_data_file, 'a') as train_file:
@@ -81,5 +82,5 @@ def genTest(project_name):
 
                         train_file.write(json.dumps(train_data) + "\n")
 
-
-genTest('py-autodoc')
+project_name, file_name = 'python-n26', 'codeBertTesting_v1.jsonl'
+genTest(project_name, file_name)

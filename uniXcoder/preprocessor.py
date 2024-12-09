@@ -40,8 +40,8 @@ ros = RandomOverSampler(random_state=42)
 texts_resampled, labels_resampled = ros.fit_resample([[x] for x in texts], labels)
 texts_resampled = [x[0] for x in texts_resampled]
 
-# Load CodeBERT tokenizer
-tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
+# Load unixcoder tokenizer
+tokenizer = RobertaTokenizer.from_pretrained("microsoft/unixcoder-base")
 
 # Tokenize the data with truncation
 print('Tokenizing Data...\n')
@@ -100,15 +100,15 @@ model = RobertaForSequenceClassification.from_pretrained("microsoft/codebert-bas
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-# Training arguments
+# Define training arguments
 training_args = TrainingArguments(
     output_dir='./results',
     num_train_epochs=5,
-    per_device_train_batch_size=8,
+    per_device_train_batch_size=8,  # Adjust batch size
     per_device_eval_batch_size=8,
     warmup_steps=100,
     weight_decay=0.01,
-    learning_rate=1e-5,
+    learning_rate=1e-5,  # Smaller learning rate
     max_grad_norm=1.0,
     logging_dir='./logs',
     eval_strategy="epoch",
@@ -128,7 +128,7 @@ trainer = Trainer(
 )
 
 # Train the model
-model_dir = "./fine_tuned_codebert"
+model_dir = "./fine_tuned_unixcoder"
 
 # Start or continue training
 if os.path.exists(model_dir):
