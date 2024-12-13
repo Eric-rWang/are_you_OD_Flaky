@@ -1,8 +1,6 @@
 # Ignore API key file
 api_key.txt
 anthropic.txt
-results/
-testingFiles/
-logs/
-fine_tuned_codebert/
-fine_tuned_unixcoder/
+archive/
+flakyProjects/
+ipflakies_result/

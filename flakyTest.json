@@ -1,0 +1,18 @@
+[
+    {
+        "project_name": "yamicache",
+        "flaky_code": "def test_utility(cache_obj):\n    for _ in range(10):\n        cache_obj.test1(8, 0)\n        cache_obj.test1(8, 2)\n        cache_obj.test1(8, 2)  # Already cached\n        cache_obj.test2()\n        cache_obj.test3(8, 2)\n\n    assert len(c) == 4\n    assert c.dump() != '{}'\n\n    key = list(c.keys())[0]\n    c.pop(key)\n\n    assert len(c) == 3\n    assert key not in c\n    assert len(c.keys()) == 3\n    assert len(c.values()) == 3\n    assert c.items()\n\n    c.clear()\n\n    assert not c.items()\n    assert not c.keys()\n    assert not c.values()\n    assert not len(c)\n    assert c.dump() == '{}'",
+        "fixed_code": "def test_utility(cache_obj):\n    c._debug = True\n    for _ in range(10):\n        cache_obj.test1(8, 0)\n        cache_obj.test1(8, 2)\n        cache_obj.test1(8, 2)  # Already cached\n        cache_obj.test2()\n        cache_obj.test3(8, 2)\n\n    assert len(c) == 4\n    assert c.dump() != '{}'\n\n    key = list(c.keys())[0]\n    c.pop(key)\n\n    assert len(c) == 3\n    assert key not in c\n    assert len(c.keys()) == 3\n    assert len(c.values()) == 3\n    assert c.items()\n\n    c.clear()\n\n    assert not c.items()\n    assert not c.keys()\n    assert not c.values()\n    assert not len(c)\n    assert c.dump() == '{}'"
+    },
+    {
+        "project_name": "yamicache",
+        "flaky_code": "def test_keyed_cached(cache_obj):\n    for _ in range(10):\n        cache_obj.test3(8, 0)\n        cache_obj.test4()  # Shouldn't be cached\n\n    assert len(c) == 1\n    key = list(c.keys())[0]\n    assert key == 'asdf'\n\n    c.clear()\n    assert len(c) == 0\n\n    # Make sure the cached function is properly wrapped\n    assert cache_obj.test3.__doc__ == 'running test3'",
+        "fixed_code": "def test_keyed_cached(cache_obj):\n    c._debug = True\n    for _ in range(10):\n        cache_obj.test3(8, 0)\n        cache_obj.test4()  # Shouldn't be cached\n\n    assert len(c) == 1\n    key = list(c.keys())[0]\n    assert key == 'asdf'\n\n    c.clear()\n    assert len(c) == 0\n\n    # Make sure the cached function is properly wrapped\n    assert cache_obj.test3.__doc__ == 'running test3'"
+    },
+    {
+        "project_name": "yamicache",
+        "flaky_code": "def test_cached(cache_obj):\n    for _ in range(10):\n        cache_obj.test1(8, 0)\n    assert len(c) == 1\n    assert cache_obj.test1(8, 0) == 1\n\n    for _ in range(10):\n        cache_obj.test2()\n    assert cache_obj.test2() == 1\n    assert len(c) == 2\n\n    c.clear()\n    assert len(c) == 0\n\n    # Make sure the cached function is properly wrapped\n    assert cache_obj.test2.__doc__ == 'running test2'",
+        "fixed_code": "def test_cached(cache_obj):\n    for _ in range(10):\n        cache_obj.test3(8, 0)\n        cache_obj.test4()\n    assert (len(c) == 1)\n    key = list(c.keys())[0]\n    assert (key == 'asdf')\n    c.clear()\n\n    for _ in range(10):\n        cache_obj.test1(8, 0)\n    assert len(c) == 1\n    assert cache_obj.test1(8, 0) == 1\n\n    for _ in range(10):\n        cache_obj.test2()\n    assert cache_obj.test2() == 1\n    assert len(c) == 2\n\n    c.clear()\n    assert len(c) == 0\n\n    # Make sure the cached function is properly wrapped\n    assert cache_obj.test2.__doc__ == 'running test2'"
+    }
+]
+

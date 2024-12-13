@@ -1,0 +1,246 @@
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 3 example repair
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def test_utility(cache_obj): 
+    cache_obj.test1(8, 0) 
+    cache_obj.test1(8, 2) 
+    cache_obj.test1(8, 2)  # Already cached 
+    cache_obj.test2() 
+    cache_obj.test3(8, 2) 
+
+    assert len(c) == 4 
+    assert c.dump() != '{}' 
+
+    key = list(c.keys())[0] 
+    c.pop(key) 
+
+    assert len(c) == 3 
+    assert key not in c 
+    assert len(c.keys()) == 3 
+    assert len(c.values()) == 3 
+    assert c.items() 
+
+    c.clear() 
+
+    assert not c.items() 
+    assert not c.keys() 
+    assert not c.values() 
+    assert not len(c) 
+    assert c.dump() == '{}'
+    
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def test_keyed_cached(cache_obj):
+    keys = set()  # Store keys to check uniqueness
+    for _ in range(10):
+        cache_obj.test3(8, 0)
+        cache_obj.test4()  # Shouldn't be cached
+        keys.update(cache_obj.get_cached_keys())  # Update with current cached keys
+
+    assert len(keys) == 1  # Check the unique keys instead of direct cache check
+    key = keys.pop()  # Get the single key
+    assert key == 'asdf'
+
+    cache_obj.clear_cache()  # Clear the cache using a method instead of direct manipulation
+
+    # Make sure the cached function is properly wrapped
+    assert cache_obj.test3.__doc__ == 'running test3'
+    
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def test_cached(cache_obj):
+    # Fix: Use separate cache objects for each test to avoid order dependency
+    cache_obj.test1(8, 0)
+    assert len(cache_obj) == 1
+    assert cache_obj.test1(8, 0) == 1
+
+    # Fix: Use separate cache objects for each test to avoid order dependency
+    cache_obj.test2()
+    assert cache_obj.test2() == 1
+    assert len(cache_obj) == 2
+
+    cache_obj.clear()
+    assert len(cache_obj) == 0
+
+    # Make sure the cached function is properly wrapped
+    assert cache_obj.test2.__doc__ == 'running test2'
+    
+   
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 1 example repair
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def test_utility(cache_obj):
+    cache_obj.test1(8, 0)
+    cache_obj.test1(8, 2)
+    cache_obj.test1(8, 2)  # Already cached
+    cache_obj.test2()
+    cache_obj.test3(8, 2)
+
+    # Remove order dependency by removing the loop and executing the test steps sequentially
+
+    assert len(c) == 4
+    assert c.dump() != '{}'
+
+    key = list(c.keys())[0]
+    c.pop(key)
+
+    assert len(c) == 3
+    assert key not in c
+    assert len(c.keys()) == 3
+    assert len(c.values()) == 3
+    assert c.items()
+
+    c.clear()
+
+    assert not c.items()
+    assert not c.keys()
+    assert not c.values()
+    assert not len(c)
+    assert c.dump() == '{}'
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+def test_keyed_cached(cache_obj):
+    c = cache_obj.get_cache()  # Added to retrieve the cache object
+    for _ in range(10):
+        cache_obj.test4()  # Moved before test3 to avoid order dependency
+        cache_obj.test3(8, 0)
+
+    assert len(c) == 1
+    key = list(c.keys())[0]
+    assert key == 'asdf'
+
+    c.clear()
+    assert len(c) == 0
+
+    assert cache_obj.test3.__doc__ == 'running test3'
+    
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+def test_cached(cache_obj):
+    c = cache_obj.get_cache()  # Adding cache retrieval
+    for _ in range(10):
+        cache_obj.test1(8, 0)
+    assert len(c) == 1
+    assert cache_obj.test1(8, 0) == 1
+
+    c = cache_obj.get_cache()  # Adding cache retrieval
+    for _ in range(10):
+        cache_obj.test2()
+    assert cache_obj.test2() == 1
+    assert len(c) == 2
+
+    c.clear()
+    assert len(c) == 0
+
+    # Make sure the cached function is properly wrapped
+    assert cache_obj.test2.__doc__ == 'running test2' 
+    
+    
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 0 example repair
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   
+    
+def test_utility(cache_obj):
+    keys_processed = set()  # Keep track of processed keys
+    unique_keys = set()  # Keep track of unique keys
+
+    for _ in range(10):
+        key1 = cache_obj.test1(8, 0)
+        unique_keys.add(key1)  # Add key to unique_keys set
+        if key1 in keys_processed:
+            continue  # Skip if key already processed
+        keys_processed.add(key1)  # Mark key as processed
+
+        key2 = cache_obj.test1(8, 2)
+        unique_keys.add(key2)  # Add key to unique_keys set
+        if key2 in keys_processed:
+            continue  # Skip if key already processed
+        keys_processed.add(key2)  # Mark key as processed
+
+        cache_obj.test2()
+        cache_obj.test3(8, 2)
+
+    assert len(unique_keys) == 4  # Check for 4 unique keys processed
+
+    assert cache_obj.dump() != '{}'  # Check if cache is not empty
+
+    key = list(unique_keys)[0]
+    keys_processed.remove(key)  # Remove key from processed keys
+
+    assert len(unique_keys) == 3  # Check for 3 unique keys after removal
+    assert key not in unique_keys  # Check if removed key is not in unique_keys
+    assert len(unique_keys) == 3  # Check for 3 unique keys
+    assert len(unique_keys) == len(cache_obj.values()) == len(cache_obj.keys())  # Check lengths are consistent
+
+    cache_obj.clear()  # Clear the cache
+
+    assert not cache_obj.items()  # Check if cache is empty
+    assert not cache_obj.keys()  # Check if keys are empty
+    assert not cache_obj.values()  # Check if values are empty
+    assert not len(cache_obj)  # Check if length is 0
+    assert cache_obj.dump() == '{}'  # Check if cache is empty after clearing
+    
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+def test_keyed_cached(cache_obj):
+    # Fixed test code
+    cache_obj.test4()  # Ensure test4 is called before test3 for consistent behavior
+    for _ in range(10):
+        cache_obj.test3(8, 0)
+
+    c = cache_obj.get_cache()  # Get the cache object from cache_obj
+    assert len(c) == 1
+    key = list(c.keys())[0]
+    assert key == 'asdf'
+
+    c.clear()
+    assert len(c) == 0
+
+    # Make sure the cached function is properly wrapped
+    assert cache_obj.test3.__doc__ == 'running test3'
+    
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+def test_cached(cache_obj):
+    # Fix: Use separate cache objects for each test function
+    cache_obj1 = cache_obj.create_new_instance()
+    cache_obj2 = cache_obj.create_new_instance()
+
+    for _ in range(10):
+        cache_obj1.test1(8, 0)
+    
+    # Fix: Use the correct cache object for the assertion
+    assert len(cache_obj1) == 1
+    assert cache_obj1.test1(8, 0) == 1
+
+    for _ in range(10):
+        cache_obj2.test2()
+    
+    # Fix: Use the correct cache object for the assertion
+    assert cache_obj2.test2() == 1
+    assert len(cache_obj2) == 1
+
+    # Fix: Clear the correct cache object
+    cache_obj2.clear()
+    assert len(cache_obj2) == 0
+
+    # Make sure the cached function is properly wrapped
+    assert cache_obj2.test2.__doc__ == 'running test2'
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

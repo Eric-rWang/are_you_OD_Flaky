@@ -5,6 +5,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoTokenizer, AutoModel
 from openai import OpenAI
 import numpy as np
+import json
+
 
 # Set up OpenAI API key
 with open('api_key.txt', 'r') as file:
@@ -16,8 +18,11 @@ client = OpenAI(api_key=api_key)
 tokenizer = AutoTokenizer.from_pretrained("microsoft/unixcoder-base")
 model = AutoModel.from_pretrained("microsoft/unixcoder-base")
 
-test_bank = [
-    # General Example 1: Resetting shared state
+# Reading in test bank
+with open('flakyTestBank_v1.json', 'r') as file:
+    test_bank = json.load(file)
+
+test_bank_general = [
     {
         "flaky_test": """
         def test_shared_counter():
@@ -34,7 +39,6 @@ test_bank = [
         "category": "Order Dependency",
         "keywords": ["shared state", "global"]
     },
-    # General Example 2: Sorting data before processing
     {
         "flaky_test": """
         def test_unsorted_list():
@@ -52,7 +56,6 @@ test_bank = [
         "category": "Order Dependency",
         "keywords": ["sorting", "unordered"]
     },
-    # General Example 3: Timing issues and non-deterministic behavior
     {
         "flaky_test": """
         def test_random_sleep():
@@ -72,7 +75,6 @@ test_bank = [
         "category": "Order Dependency",
         "keywords": ["timing", "random"]
     },
-    # General Example 4: Clearing state between tests
     {
         "flaky_test": """
         def test_accumulator():
@@ -88,7 +90,6 @@ test_bank = [
         "category": "Order Dependency",
         "keywords": ["state management", "cleanup"]
     },
-    # General Example 5: Handling external resources
     {
         "flaky_test": """
         def test_temp_file_creation():
@@ -106,7 +107,6 @@ test_bank = [
         "category": "Order Dependency",
         "keywords": ["external resources", "file handling", "cleanup"]
     },
-    # General Example 6: Mocking external state
     {
         "flaky_test": """
         def test_environment_variable():
@@ -126,31 +126,32 @@ test_bank = [
     }
 ]
 
-
-
 # Helper: Get Code Embedding
 def get_code_embedding(code):
     inputs = tokenizer(code, return_tensors="pt", truncation=True, max_length=512)
     outputs = model(**inputs)
+
     # Reduce to 2D by averaging across sequence length (axis 1)
     embedding = outputs.last_hidden_state.mean(dim=1).detach().numpy()
+
     return embedding
 
 # Helper: Find Similar Tests
-def find_similar_tests(test_code, test_bank, top_k=3):
+def find_similar_tests(test_code, test_bank, top_k=1):
     test_embedding = get_code_embedding(test_code).reshape(1, -1)  # Ensure 2D for cosine_similarity
-    bank_embeddings = [get_code_embedding(entry["flaky_test"]).reshape(1, -1) for entry in test_bank]
+    bank_embeddings = [get_code_embedding(entry["flaky_code"]).reshape(1, -1) for entry in test_bank]
     bank_embeddings = np.vstack(bank_embeddings)  # Stack all embeddings into a single 2D array
 
     similarities = cosine_similarity(test_embedding, bank_embeddings)[0]
     ranked_tests = sorted(zip(test_bank, similarities), key=lambda x: x[1], reverse=True)
     
+    # print(ranked_tests)
+
     # Return both test bank entries and their similarity scores
     return [(entry[0], entry[1]) for entry in ranked_tests[:top_k]]
 
-
 # Helper: Construct Prompt
-def construct_order_dependent_prompt(test_code, similar_tests):
+def construct_order_dependent_prompt(test_code, similar_tests, example=False):
     prompt = f"""
         You are a Python test expert specializing in fixing flaky tests. 
         The test below is flaky due to order dependency. Please comment 
@@ -163,14 +164,15 @@ def construct_order_dependent_prompt(test_code, similar_tests):
         Here are some examples of flaky tests and their fixes:
     """
 
-    for test in similar_tests:
-        prompt += f"""
-            Example Flaky Test:
-            {test['flaky_test']}
+    if example:
+        for test in similar_tests:
+            prompt += f"""
+                Example Flaky Test:
+                {test['flaky_code']}
 
-            Fixed Test:
-            {test['fixed_test']}
-        """
+                Fixed Test:
+                {test['fixed_code']}
+            """
 
     prompt += "\nNow provide the fixed test code for the given flaky test."
 
@@ -178,31 +180,23 @@ def construct_order_dependent_prompt(test_code, similar_tests):
 
 # Repair Flaky Test Using GPT
 def repair_flaky_test(flaky_test_code, fix_category, test_bank):
-    """
-    Prompts GPT-3.5 to repair a flaky test.
-
-    Args:
-        flaky_test_code (str): The flaky test code to be fixed.
-        fix_category (str): The predicted category of the fix (e.g., "Order Dependency").
-        test_bank (list): List of examples with flaky tests and fixes.
-
-    Returns:
-        str: The repaired test code suggested by GPT.
-    """
     # Find similar tests
     similar_tests_with_scores = find_similar_tests(flaky_test_code, test_bank)
+
+    # for test, score in similar_tests_with_scores:
+    #     print(score)
     
     print("Similar tests picked with scores:")
     for test, score in similar_tests_with_scores:
         print(f"Similarity Score: {score:.4f}")
-        print(f"Flaky Test:\n{test['flaky_test']}")
-        print(f"Fixed Test:\n{test['fixed_test']}\n")
+        print(f"Flaky Test:\n{test['flaky_code']}")
+        print(f"Fixed Test:\n{test['fixed_code']}\n\n")
 
     # Extract only the tests for constructing the prompt
     similar_tests = [test for test, score in similar_tests_with_scores]
 
     # Construct the prompt
-    prompt = construct_order_dependent_prompt(flaky_test_code, similar_tests)
+    prompt = construct_order_dependent_prompt(flaky_test_code, similar_tests, False)
 
     # Call the OpenAI GPT API
     try:
@@ -224,9 +218,8 @@ def repair_flaky_test(flaky_test_code, fix_category, test_bank):
 
 # Main Repair Pipeline
 if __name__ == "__main__":
-
     # Flaky test
-    flaky_test_code = """
+    flaky_test_code_example = """
         def test_execution_order():
             results = []
             results.append(part1())
@@ -234,10 +227,14 @@ if __name__ == "__main__":
             assert results == [1, 2]
     """
 
+    with open('flakyTest.json', 'r') as file:
+        flakyTests = json.load(file)
+
     # Fix category
     fix_category = "Order Dependency"
 
     # Repair the test
-    print("Repairing Flaky Test...")
-    repaired_code = repair_flaky_test(flaky_test_code, fix_category, test_bank)
-    print("Repaired Test Code:\n", repaired_code)
+    for test in flakyTests:
+        print("Repairing Flaky Test...")
+        repaired_code = repair_flaky_test(test['flaky_code'], fix_category, test_bank)
+        print("Repaired Test Code:\n", repaired_code,'\n\n')
